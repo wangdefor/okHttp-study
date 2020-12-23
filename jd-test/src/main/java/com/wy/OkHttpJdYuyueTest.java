@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.*;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -18,7 +19,6 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.time.Instant;
@@ -31,7 +31,7 @@ import java.util.List;
  * @Created wangyong
  */
 @Slf4j
-public class JdTest {
+public class OkHttpJdYuyueTest {
 
     /**
      * 登陆之后的cookie信息 直接进入浏览器进入下单页面 复制request中的header中的cookie值
@@ -46,64 +46,57 @@ public class JdTest {
     /**
      * 设置utf-8编码
      */
-    public static final RestTemplate restTemplate = getInstance("UTF-8");
+    public static final OkHttpClient.Builder clientBuild = new OkHttpClient.Builder();
+
 
     /**
      * 第一步获取预约url
      *
      * @return
      */
-    public static Info getUrl() throws URISyntaxException {
-        HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.COOKIE, GOOGLE_COOKIE);
-        headers.add("Referer","https://item.jd.com/" + skuId + ".html");
-        MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
-        map.add("callback","fetchJSON");
-        map.add("sku",skuId);
-        map.add("_", Instant.now().toEpochMilli() + "");
-        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(map, headers);
+    public static Info getUrl() throws IOException {
         String goodsInfoUrl = "https://yushou.jd.com/youshouinfo.action?";
-        URI uri = new URI(goodsInfoUrl);
-        ResponseEntity<String> exchange = restTemplate.exchange(uri, HttpMethod.POST, entity, String.class);
-        String body = exchange.getBody();
-        log.info("正在进行获取预约url请求 {}",body);
-        String substring = body.substring(10, body.length() - 2);
-        Info parse = JSONObject.parseObject(substring, Info.class);
-        log.info("解析之后的url请求为 {}",JSONObject.toJSONString(parse));
-        return parse;
-    }
-
-    public static void yuYue() throws URISyntaxException {
-        Info url = getUrl();
-        MultiValueMap<String, String> map2 = new LinkedMultiValueMap<>();
-        HttpHeaders headers2 = new HttpHeaders();
-        headers2.add(HttpHeaders.COOKIE, GOOGLE_COOKIE);
-        HttpEntity<MultiValueMap<String, String>> entity2 = new HttpEntity<>(map2, headers2);
-        ResponseEntity<String> exchange = restTemplate.exchange("https:" + url.url, HttpMethod.GET, entity2, String.class);
-        String message= "您已成功预约";
-        if(exchange.getBody().contains(message)){
-            log.info("您已成功预约过了，无需重复预约");
-        }else{
-            log.info("预约失败");
+        FormBody body = new FormBody.Builder()
+                .add("callback","fetchJSON")
+                .add("sku",skuId)
+                .add("_",Instant.now().toEpochMilli() + "")
+                .build();
+        Request request = new Request.Builder()
+                .url(goodsInfoUrl)
+                .post(body)
+                .addHeader(HttpHeaders.COOKIE, GOOGLE_COOKIE)
+                .addHeader("Referer","https://item.jd.com/" + skuId + ".html")
+                .build();
+        try (Response response = clientBuild.build().newCall(request).execute()) {
+            String result = response.body().string();
+            log.info("正在进行获取预约url请求 {}", result);
+            String substring = result.substring(10, result.length() - 2);
+            Info parse = JSONObject.parseObject(substring, Info.class);
+            log.info("解析之后的url请求为 {}",JSONObject.toJSONString(parse));
+            return parse;
         }
     }
 
-
-    public static void main(String[] args) throws URISyntaxException {
-        yuYue();
-    }
-
-
-    public static RestTemplate getInstance(String charset) {
-        RestTemplate restTemplate = new RestTemplate();
-        List<HttpMessageConverter<?>> list = restTemplate.getMessageConverters();
-        for (HttpMessageConverter<?> httpMessageConverter : list) {
-            if (httpMessageConverter instanceof StringHttpMessageConverter) {
-                ((StringHttpMessageConverter) httpMessageConverter).setDefaultCharset(Charset.forName(charset));
-                break;
+    public static void yuYue() throws IOException {
+        Info url = getUrl();
+        Request request = new Request.Builder()
+                .url("https:" + url.getUrl())
+                .addHeader(HttpHeaders.COOKIE, GOOGLE_COOKIE)
+                .build();
+        try (Response response = clientBuild.build().newCall(request).execute()) {
+            String result = response.body().string();
+            String message= "您已成功预约";
+            if(result.contains(message)){
+                log.info("您已成功预约过了，无需重复预约");
+            }else{
+                log.info("预约失败");
             }
         }
-        return restTemplate;
+    }
+
+
+    public static void main(String[] args) throws  IOException {
+        yuYue();
     }
 
     @Data
