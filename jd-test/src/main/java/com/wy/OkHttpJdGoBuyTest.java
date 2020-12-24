@@ -162,10 +162,10 @@ public class OkHttpJdGoBuyTest {
         }
     }
 
-    public static void submitOrder() throws Exception {
+    public static void submitOrder(SeckillSkuVO initInfo) throws Exception {
         String url = "https://marathon.jd.com/seckillnew/orderService/pc/submitOrder.action?skuId" + skuId;
-        SeckillSkuVO initInfo = getInitInfo();
         SubmitOrderVo orderVo = buildSubmit(initInfo);
+        log.info("组装订单参数" + JSONObject.toJSONString(orderVo));
         Request request = new Request.Builder()
                 .url(url)
                 .post(RequestBody.create(JSONObject.toJSONString(orderVo), JSON))
@@ -270,7 +270,7 @@ public class OkHttpJdGoBuyTest {
     }
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        getUserInfo();
+        SeckillSkuVO initInfo = getInitInfo();
         while (true) {
             //获取抢购url
             try {
@@ -284,7 +284,7 @@ public class OkHttpJdGoBuyTest {
                 try {
                     //提交订单
                     visitJieSuan();
-                    submitOrder();
+                    submitOrder(initInfo);
                     return;
                 } catch (Exception e) {
                     log.error("提交失败", e);

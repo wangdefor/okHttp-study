@@ -67,7 +67,7 @@ public class SeckillSkuVO implements Serializable {
 
         private String size;
 
-        private Integer skuId;
+        private String skuId;
 
         private String skuImgUrl;
 
