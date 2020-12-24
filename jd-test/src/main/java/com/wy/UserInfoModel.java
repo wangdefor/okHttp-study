@@ -34,8 +34,4 @@ public class UserInfoModel implements Serializable {
     private UserScoreVo userScoreVO;
 
 
-
-
-
-
 }

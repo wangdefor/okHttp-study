@@ -7,16 +7,17 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.FormBody;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
+import okhttp3.*;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.http.HttpHeaders;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.time.Instant;
-import java.util.Random;
+import java.util.concurrent.TimeUnit;
+
+import static com.wy.OkHttpJdYuyueTest.GOOGLE_COOKIE;
+import static com.wy.OkHttpJdYuyueTest.skuId;
 
 /**
  * @Classname JdTest
@@ -27,20 +28,17 @@ import java.util.Random;
 @Slf4j
 public class OkHttpJdGoBuyTest {
 
-    /**
-     * 登陆之后的cookie信息 直接进入浏览器进入下单页面 复制request中的header中的cookie值
-     */
-    public static final String GOOGLE_COOKIE = "__jdu=624862094; areaId=2; PCSYCityID=CN_310000_310100_310107; shshshfpa=cea9288b-63d3-e015-6e16-f5ff5eaaa1a5-1608691474; user-key=53a36954-5e29-4d7f-8d87-882457172e1a; TrackID=1TrSVOnuuJrzxuJoYHPY4eq1NSrNRawfaDMY3EkJFbb3P_QevGAQEvjtKsshMiv0TrqHVl9b_WfTIhSOusK7ITdJMuI04PdK4tK7q0wO_nfQ; pinId=3c58XF1KC6ABNB2Km3viKQ; pin=%E6%B1%AA%E7%9A%84for; unick=%E6%B1%AA%E7%9A%84for; ceshi3.com=201; _tp=2J8BuqLMzfgd3eYqVWA1Fyah7aTMXt9%2F8Sns9dtyrL0%3D; _pst=%E6%B1%AA%E7%9A%84for; shshshfpb=nS6Ht2MXZTv%20eT%20eV6AyT6w%3D%3D; unpl=V2_ZzNtbUJUF0Z2CkIGKEoJVmJUG1RLBRAXdgFEAHMcWQ1lBxEJclRCFnQURldnGl4UZwEZX0RcRhNFCEdkeBBVAWMDE1VGZxBFLV0CFSNGF1wjU00zQwBBQHcJFF0uSgwDYgcaDhFTQEJ2XBVQL0oMDDdRFAhyZ0AVRQhHZHwaWQxgABNVR2dzEkU4dlJ6HVoMYzMTbUNnAUEpAEJUch0RAmQGG1pBVksQRQl2Vw%3d%3d; __jdv=76161171|baidu-pinzhuan|t_288551095_baidupinzhuan|cpc|0f3d30c8dba7459bb52f2eb5eba8ac7d_0_12eb235cbbdb4f888cb3283e9449352e|1608701869166; thor=ABD285720EEFCED11559EF874D6F93ACBBACA2B58C307CE02F76717D3EE2D11D35BDC73B160E9B6AFE99EB312705068CFC3530AD347175E848BE76793C8D3AC5C3CB57A49265D884AD33CD6CA40393AE757460378DB2ABB8D3B7D2A5671F6A0FC7B24CC06A47A39DE6D7E814BDCC4E3733CFA2E5587655D4A9DFB9AB5E45A04C; cn=2; __jda=122270672.624862094.1608279990.1608691473.1608701869.3; __jdc=122270672; shshshfp=b8a2b9a959d9e8584e204a27a0ecb1e0; shshshsID=1e1adca505b399a26757fc32c0c4c32b_2_1608701894826; 3AB9D23F7A4B3C9B=KMIXFQHHCWMFPL7CC4GK7MSWCUGWM2AMF72VC2W3A66TSHLWVCRFREUH33JBQFUA3ELE5IWM4ITFQSX4DQHEXP6JEM; ipLoc-djd=17-1381-50718-53772.2889967991; ipLocation=%u6e56%u5317; __jdb=122270672.3.624862094|3.1608701869; JSESSIONID=D1076FA715FE8FED23CA76FC02C3CC56.s1";
+    public static final String eid = "KMIXFQHHCWMFPL7CC4GK7MSWCUGWM2AMF72VC2W3A66TSHLWVCRFREUH33JBQFUA3ELE5IWM4ITFQSX4DQHEXP6JEM";
 
-    /**
-     * 茅台sku
-     */
-    public static final String skuId = "100012043978";
+    public static final String fp = "8a8a626d57254f9ea209f1ddda8aa2b2";
 
     /**
      * 设置utf-8编码
      */
     public static final OkHttpClient.Builder clientBuild = new OkHttpClient.Builder();
+
+    public static final MediaType JSON
+            = MediaType.get("application/json; charset=utf-8");
 
     /**
      * 获取个人信息
@@ -69,68 +67,261 @@ public class OkHttpJdGoBuyTest {
         }
     }
 
-
-    /**
-     * 第一步获取预约url
-     *
-     * @return
-     */
-    public static Info getUrl() throws IOException {
-        String goodsInfoUrl = "https://yushou.jd.com/youshouinfo.action?";
-        FormBody body = new FormBody.Builder()
-                .add("callback","fetchJSON")
-                .add("sku",skuId)
-                .add("_",Instant.now().toEpochMilli() + "")
-                .build();
+    public static GoBuyUrl getGoBuyUrl() throws IOException, InterruptedException {
+        //获取商品抢购链接
+        String url = "https://itemko.jd.com/itemShowBtn";
+        String params = "?callback=jQuery" + RandomUtil.randomNumbers(7) + "&skuId=" + skuId + "&from=pc" + "&_=" + Instant.now().toEpochMilli();
+        log.info("params {}", params);
         Request request = new Request.Builder()
-                .url(goodsInfoUrl)
-                .post(body)
+                .url(url + params)
+                .get()
                 .addHeader(HttpHeaders.COOKIE, GOOGLE_COOKIE)
-                .addHeader("Referer","https://item.jd.com/" + skuId + ".html")
+                .addHeader("Host", "itemko.jd.com")
+                .addHeader("Referer", "https://item.jd.com/" + skuId + ".html")
+                .addHeader("User-Agent", "")
                 .build();
-        try (Response response = clientBuild
-                .followRedirects(Boolean.FALSE)
-                .build()
-                .newCall(request).execute()) {
-            String result = response.body().string();
-            log.info("正在进行获取预约url请求 {}", result);
-            String substring = result.substring(10, result.length() - 2);
-            System.out.println(substring);
-            Info parse = JSONObject.parseObject(substring, Info.class);
-            log.info("解析之后的url请求为 {}",JSONObject.toJSONString(parse));
-            return parse;
+        GoBuyUrl goBuyUrl = null;
+        while (true) {
+            try (Response response = clientBuild.build().newCall(request).execute()) {
+                String result = response.body().string();
+                log.info("正在获取前抢购链接 {}", result);
+                String substring = result.substring("jQuery0000000".length() + 1, result.length() - 2);
+                goBuyUrl = JSONObject.parseObject(substring, GoBuyUrl.class);
+                log.info("json mapping to goBuyUrl {}", JSONObject.toJSONString(goBuyUrl));
+            }
+            if (!StringUtils.isNotBlank(goBuyUrl.getUrl())) {
+                log.info("抢购链接获取失败，稍后将会自动重试");
+                //睡眠几百毫秒
+                TimeUnit.MILLISECONDS.sleep(RandomUtil.randomLong(100, 500));
+                continue;
+            }
+            String replace = goBuyUrl.getUrl().replace("divide", "marathon")
+                    .replace("user_routing", "captcha.html");
+            goBuyUrl.setUrl("https:" + replace);
+            return goBuyUrl;
         }
     }
 
-    public static void yuYue() throws IOException {
-        Info url = getUrl();
-        Request request = new Request.Builder()
-                .url("https:" + url.getUrl())
-                .addHeader(HttpHeaders.COOKIE, GOOGLE_COOKIE)
-                .build();
-        try (Response response = clientBuild.build().newCall(request).execute()) {
-            String result = response.body().string();
-            String message= "您已成功预约";
-            if(result.contains(message)){
-                log.info("您已成功预约过了，无需重复预约");
-            }else{
-                log.info("预约失败");
+    public static void visitGoBuyUrl() throws Exception {
+        Response response = null;
+        try {
+            GoBuyUrl goBuyUrl = getGoBuyUrl();
+            Request request = new Request.Builder()
+                    .url(goBuyUrl.getUrl())
+                    .get()
+                    .addHeader(HttpHeaders.COOKIE, GOOGLE_COOKIE)
+                    .addHeader("Host", "marathon.jd.com")
+                    .addHeader("Referer", "https://item.jd.com/" + skuId + ".html")
+                    .addHeader("User-Agent", "")
+                    .build();
+            response = clientBuild.followRedirects(Boolean.FALSE).build().newCall(request).execute();
+            if (response.code() == 200) {
+                String string = response.body().string();
+                log.info("抢购成功，将进入结算订单页面 {}", string);
+                return;
+            }
+            throw new Exception("");
+        } catch (Exception e) {
+            log.error("进入结算订单页面异常", e);
+            throw e;
+        } finally {
+            if (response != null) {
+                response.close();
             }
         }
     }
 
+    public static void visitJieSuan() throws Exception {
+        log.info("访问订单结算页面");
+        String url = "https://marathon.jd.com/seckill/seckill.action?skuId=" + skuId + "&num=2&rid" + Instant.now().getEpochSecond();
+        Request request = new Request.Builder()
+                .url(url)
+                .get()
+                .addHeader(HttpHeaders.COOKIE, GOOGLE_COOKIE)
+                .addHeader("Host", "marathon.jd.com")
+                .addHeader("Referer", "https://item.jd.com/" + skuId + ".html")
+                .addHeader("User-Agent", "")
+                .build();
+        Response response = null;
+        try {
+            response = clientBuild.followRedirects(Boolean.FALSE).build().newCall(request).execute();
+            String string = response.body().string();
+            log.info("访问订单结算页面结果为 {},", string);
+            if (response.code() == 200) {
+                log.info("访问订单结算页面成功 {}", string);
+                return;
+            }
+            throw new Exception("访问订单结算页面失败");
+        } catch (Exception e) {
+            log.error("问订单结算异常", e);
+            throw e;
+        } finally {
+            if (response != null) {
+                response.close();
+            }
+        }
+    }
 
-    public static void main(String[] args) throws  IOException {
+    public static void submitOrder() throws Exception {
+        String url = "https://marathon.jd.com/seckillnew/orderService/pc/submitOrder.action?skuId" + skuId;
+        SeckillSkuVO initInfo = getInitInfo();
+        SubmitOrderVo orderVo = buildSubmit(initInfo);
+        Request request = new Request.Builder()
+                .url(url)
+                .post(RequestBody.create(JSONObject.toJSONString(orderVo), JSON))
+                .addHeader(HttpHeaders.COOKIE, GOOGLE_COOKIE)
+                .addHeader("Host", "marathon.jd.com")
+                .addHeader("Host", "https://marathon.jd.com/seckill/seckill.action?skuId=" + skuId + "&num=" + 2 + "&rid=" + Instant.now().getEpochSecond())
+                .addHeader("User-Agent", "")
+                .build();
+        Response response = null;
+        try {
+            response = clientBuild.followRedirects(Boolean.FALSE).build().newCall(request).execute();
+            String string = response.body().string();
+            log.info("提交订单，返回结果 {}", string);
+            if (string.contains("success") && string.contains("true")) {
+                log.info("抢购成功");
+            }
+            throw new Exception("提交订单失败");
+        } catch (Exception e) {
+            log.info("提交订单结算异常", e);
+            throw e;
+        } finally {
+            if (response != null) {
+                response.close();
+            }
+        }
+    }
+
+    public static SubmitOrderVo buildSubmit(SeckillSkuVO initInfo) {
+        Address address = initInfo.getAddressList().get(0);
+        InvoiceInfo info = initInfo.getInvoiceInfo();
+        PaymentType paymentType = initInfo.getPaymentTypeList().get(0);
+        SubmitOrderVo orderVo = SubmitOrderVo.builder()
+                .addressDetail(address.getAddressDetail())
+                .addressId(address.getId())
+                .areaCode(address.getAreaCode())
+                .cityId(address.getCityId())
+                .codTimeType(3)
+                .countyId(address.getCountyId())
+                .eid(eid)
+                .email("")
+                .fp(fp)
+                .invoce(info != null)
+                .invoiceCompanyName(info.getInvoiceCompany())
+                .invoiceContent(info.getInvoiceContentType())
+                .invoiceEmail("")
+                .invoicePhone(info.getInvoicePhone())
+                .invoicePhoneKey(info.getInvoicePhoneKey())
+                .invoiceTaxpayerNO("")
+                .invoiceTitle(info.getInvoiceTitle())
+                .isModifyAddress(false)
+                .mobile(address.getMobile())
+                .mobileKey(address.getMobileKey())
+                .name(initInfo.getAddressList().get(0).getName())
+                .num(2)
+                .overseas(address.getOverseas())
+                .password("")
+                .paymentType(paymentType.getPaymentId())
+                .phone("")
+                .postCode("")
+                .provinceId(address.getProvinceId())
+                .pru("")
+                .skuId(skuId)
+                .token(initInfo.getToken())
+                .townId(address.getTownId())
+                .yuShou(true)
+                .build();
+        return orderVo;
+    }
+
+    public static SeckillSkuVO getInitInfo() {
+        String url = "https://marathon.jd.com/seckillnew/orderService/pc/init.action";
+        FormBody.Builder form = new FormBody.Builder();
+        form.add("sku", skuId)
+                .add("num", "2")
+                .add("isModifyAddress", "false");
+        Request request = new Request.Builder()
+                .url(url)
+                .post(form.build())
+                .addHeader(HttpHeaders.COOKIE, GOOGLE_COOKIE)
+                .addHeader("Host", "marathon.jd.com")
+                .addHeader("User-Agent", "")
+                .build();
+        Response response = null;
+        try {
+            response = clientBuild.followRedirects(Boolean.FALSE).build().newCall(request).execute();
+            if (response.code() == 200) {
+                String string = response.body().string();
+                log.info("获取抢购初始化信息成功 {}", string);
+                SeckillSkuVO skuVO = JSONObject.parseObject(string, SeckillSkuVO.class);
+                log.info("SkillSkuVo build success {}", JSONObject.toJSONString(skuVO));
+                return skuVO;
+            }
+        } catch (Exception e) {
+            log.info("获取抢购初始化信息异常", e);
+
+        } finally {
+            if (response != null) {
+                response.close();
+            }
+        }
+        return null;
+    }
+
+    public static void main(String[] args) throws IOException, InterruptedException {
         getUserInfo();
+        while (true) {
+            //获取抢购url
+            try {
+                visitGoBuyUrl();
+            } catch (Exception e) {
+                log.error("进入订单结算页面失败", e);
+                continue;
+            }
+            //访问抢购订单结算页面
+            while (true) {
+                try {
+                    //提交订单
+                    visitJieSuan();
+                    submitOrder();
+                    return;
+                } catch (Exception e) {
+                    log.error("提交失败", e);
+                }
+            }
+        }
     }
 
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
     @Builder
-    public static class Info implements Serializable {
+    public static class OrderResult implements Serializable {
 
-        private String info;
+        private Integer resultCode;
+
+        private Boolean success;
+
+        private String totalMoney;
+
+        private String appUrl;
+
+        private Long orderId;
+
+        private String pcUrl;
+
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Builder
+    public static class GoBuyUrl implements Serializable {
+
+        private String type;
+
+        private String state;
 
         private String url;
     }

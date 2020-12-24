@@ -16,7 +16,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -56,20 +55,20 @@ public class JdTest {
     public static Info getUrl() throws URISyntaxException {
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.COOKIE, GOOGLE_COOKIE);
-        headers.add("Referer","https://item.jd.com/" + skuId + ".html");
+        headers.add("Referer", "https://item.jd.com/" + skuId + ".html");
         MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
-        map.add("callback","fetchJSON");
-        map.add("sku",skuId);
+        map.add("callback", "fetchJSON");
+        map.add("sku", skuId);
         map.add("_", Instant.now().toEpochMilli() + "");
         HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(map, headers);
         String goodsInfoUrl = "https://yushou.jd.com/youshouinfo.action?";
         URI uri = new URI(goodsInfoUrl);
         ResponseEntity<String> exchange = restTemplate.exchange(uri, HttpMethod.POST, entity, String.class);
         String body = exchange.getBody();
-        log.info("正在进行获取预约url请求 {}",body);
+        log.info("正在进行获取预约url请求 {}", body);
         String substring = body.substring(10, body.length() - 2);
         Info parse = JSONObject.parseObject(substring, Info.class);
-        log.info("解析之后的url请求为 {}",JSONObject.toJSONString(parse));
+        log.info("解析之后的url请求为 {}", JSONObject.toJSONString(parse));
         return parse;
     }
 
@@ -80,10 +79,10 @@ public class JdTest {
         headers2.add(HttpHeaders.COOKIE, GOOGLE_COOKIE);
         HttpEntity<MultiValueMap<String, String>> entity2 = new HttpEntity<>(map2, headers2);
         ResponseEntity<String> exchange = restTemplate.exchange("https:" + url.url, HttpMethod.GET, entity2, String.class);
-        String message= "您已成功预约";
-        if(exchange.getBody().contains(message)){
+        String message = "您已成功预约";
+        if (exchange.getBody().contains(message)) {
             log.info("您已成功预约过了，无需重复预约");
-        }else{
+        } else {
             log.info("预约失败");
         }
     }

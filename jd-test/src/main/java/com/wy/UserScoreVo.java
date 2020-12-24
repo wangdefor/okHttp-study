@@ -35,7 +35,4 @@ public class UserScoreVo implements Serializable {
     private Integer totalScore;
 
 
-
-
-
 }
