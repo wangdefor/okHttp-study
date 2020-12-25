@@ -14,6 +14,8 @@ import org.springframework.http.HttpHeaders;
 import java.io.IOException;
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static com.wy.OkHttpJdYuyueTest.GOOGLE_COOKIE;
@@ -115,12 +117,6 @@ public class OkHttpJdGoBuyTest {
                     .addHeader("User-Agent", "")
                     .build();
             response = clientBuild.followRedirects(Boolean.FALSE).build().newCall(request).execute();
-            if (response.code() == 200) {
-                String string = response.body().string();
-                log.info("抢购成功，将进入结算订单页面 {}", string);
-                return;
-            }
-            throw new Exception("");
         } catch (Exception e) {
             log.error("进入结算订单页面异常", e);
             throw e;
@@ -147,11 +143,6 @@ public class OkHttpJdGoBuyTest {
             response = clientBuild.followRedirects(Boolean.FALSE).build().newCall(request).execute();
             String string = response.body().string();
             log.info("访问订单结算页面结果为 {},", string);
-            if (response.code() == 200) {
-                log.info("访问订单结算页面成功 {}", string);
-                return;
-            }
-            throw new Exception("访问订单结算页面失败");
         } catch (Exception e) {
             log.error("问订单结算异常", e);
             throw e;
@@ -163,12 +154,15 @@ public class OkHttpJdGoBuyTest {
     }
 
     public static void submitOrder(SeckillSkuVO initInfo) throws Exception {
-        String url = "https://marathon.jd.com/seckillnew/orderService/pc/submitOrder.action?skuId" + skuId;
+        String url = "https://marathon.jd.com/seckillnew/orderService/pc/submitOrder.action?skuId=" + skuId;
         SubmitOrderVo orderVo = buildSubmit(initInfo);
+        FormBody.Builder builder = new FormBody.Builder();
+        Map<String,String> map = JSONObject.parseObject(JSONObject.toJSONString(orderVo), Map.class);
+        map.forEach((key,value) -> builder.add(key,value));
         log.info("组装订单参数" + JSONObject.toJSONString(orderVo));
         Request request = new Request.Builder()
                 .url(url)
-                .post(RequestBody.create(JSONObject.toJSONString(orderVo), JSON))
+                .post(builder.build())
                 .addHeader(HttpHeaders.COOKIE, GOOGLE_COOKIE)
                 .addHeader("Host", "marathon.jd.com")
                 .addHeader("Host", "https://marathon.jd.com/seckill/seckill.action?skuId=" + skuId + "&num=" + 2 + "&rid=" + Instant.now().getEpochSecond())
