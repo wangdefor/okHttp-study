@@ -1,7 +1,9 @@
-package com.wy;
+package com.wy.service;
 
 import cn.hutool.core.util.RandomUtil;
 import com.alibaba.fastjson.JSONObject;
+import com.wy.model.*;
+import com.wy.model.Address;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,33 +16,28 @@ import org.springframework.http.HttpHeaders;
 import java.io.IOException;
 import java.io.Serializable;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static com.wy.OkHttpJdYuyueTest.GOOGLE_COOKIE;
-import static com.wy.OkHttpJdYuyueTest.skuId;
+import static com.wy.contants.CommonContants.GOOGLE_COOKIE;
+import static com.wy.contants.CommonContants.eid;
+import static com.wy.contants.CommonContants.fp;
+import static com.wy.contants.CommonContants.skuId;
 
 /**
  * @Classname JdTest
- * @Description JdTest
+ * @Description 抢购功能
  * @Date 2020/12/23 14:20
  * @Created wangyong
  */
 @Slf4j
 public class OkHttpJdGoBuyTest {
 
-    public static final String eid = "KMIXFQHHCWMFPL7CC4GK7MSWCUGWM2AMF72VC2W3A66TSHLWVCRFREUH33JBQFUA3ELE5IWM4ITFQSX4DQHEXP6JEM";
-
-    public static final String fp = "8a8a626d57254f9ea209f1ddda8aa2b2";
-
     /**
      * 设置utf-8编码
      */
     public static final OkHttpClient.Builder clientBuild = new OkHttpClient.Builder();
 
-    public static final MediaType JSON
-            = MediaType.get("application/json; charset=utf-8");
 
     /**
      * 获取个人信息
@@ -157,8 +154,8 @@ public class OkHttpJdGoBuyTest {
         String url = "https://marathon.jd.com/seckillnew/orderService/pc/submitOrder.action?skuId=" + skuId;
         SubmitOrderVo orderVo = buildSubmit(initInfo);
         FormBody.Builder builder = new FormBody.Builder();
-        Map<String,String> map = JSONObject.parseObject(JSONObject.toJSONString(orderVo), Map.class);
-        map.forEach((key,value) -> builder.add(key,value));
+        Map<String,Object> map = JSONObject.parseObject(JSONObject.toJSONString(orderVo), Map.class);
+        map.forEach((key,value) -> builder.add(key,String.valueOf(value)));
         log.info("组装订单参数" + JSONObject.toJSONString(orderVo));
         Request request = new Request.Builder()
                 .url(url)
@@ -263,7 +260,7 @@ public class OkHttpJdGoBuyTest {
         return null;
     }
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) {
         SeckillSkuVO initInfo = getInitInfo();
         while (true) {
             //获取抢购url

@@ -1,4 +1,4 @@
-package com.wy;
+package com.wy.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -8,18 +8,16 @@ import lombok.NoArgsConstructor;
 import java.io.Serializable;
 
 /**
- * @Classname PaymentType
- * @Description PaymentType
- * @Date 2020/12/24 10:13
+ * @Classname TicketVo
+ * @Description TODO
+ * @Date 2020/12/28 14:40
  * @Created wangyong
  */
-@Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class PaymentType implements Serializable {
+@Data
+public class TicketVo implements Serializable {
 
-    private Integer paymentId;
-
-    private String paymentName;
+    private String ticket;
 }

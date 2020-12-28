@@ -1,4 +1,4 @@
-package com.wy;
+package com.wy.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
