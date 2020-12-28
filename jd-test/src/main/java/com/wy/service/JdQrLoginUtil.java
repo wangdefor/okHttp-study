@@ -40,14 +40,6 @@ public class JdQrLoginUtil {
      */
     public static final OkHttpClient.Builder clientBuild = new OkHttpClient.Builder();
 
-
-    /**
-     * 预约
-     */
-    public static void appointment() throws Exception{
-        JdAppointment.yuYue();
-    }
-
     public static void checkLogin(String cookie) throws Exception{
         CommonContants.GOOGLE_COOKIE = cookie;
         UserInfoModel user = userService.getUser();
@@ -59,10 +51,6 @@ public class JdQrLoginUtil {
             user = userService.getUser();
         }
         log.info("当前个人信息为 {}", JSONUtil.toJsonStr(user));
-    }
-
-    public static void main(String[] args) throws Exception{
-        appointment();
     }
 
     public static Headers getHeaders(){
