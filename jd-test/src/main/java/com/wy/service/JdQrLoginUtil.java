@@ -169,7 +169,7 @@ public class JdQrLoginUtil {
 
     }
 
-    private static File createQrFile(Response response) throws Exception{
+    public static File createQrFile(Response response) throws Exception{
         FileOutputStream fileOutputStream = null;
         File file = null;
         InputStream inputStream = response.body().byteStream();
@@ -182,6 +182,7 @@ public class JdQrLoginUtil {
                 fileOutputStream.write(buffer, 0, len);
             }
             fileOutputStream.flush();
+            log.info("create qr code success,{}",file.getAbsolutePath());
             return file;
         } catch (Exception e) {
             throw e;

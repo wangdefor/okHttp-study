@@ -16,8 +16,12 @@ import org.springframework.http.HttpHeaders;
 import java.io.IOException;
 import java.io.Serializable;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.wy.contants.CommonContants.GOOGLE_COOKIE;
 import static com.wy.contants.CommonContants.eid;
@@ -86,6 +90,7 @@ public class OkHttpJdGoBuyTest {
                 log.info("正在获取前抢购链接 {}", result);
                 String substring = result.substring("jQuery0000000".length() + 1, result.length() - 2);
                 goBuyUrl = JSONObject.parseObject(substring, GoBuyUrl.class);
+                headerBuild.add("cookie",response.headers("Set-cookie").stream().collect(Collectors.joining(";")));
                 log.info("json mapping to goBuyUrl {}", JSONObject.toJSONString(goBuyUrl));
             }
             if (!StringUtils.isNotBlank(goBuyUrl.getUrl())) {
@@ -101,6 +106,8 @@ public class OkHttpJdGoBuyTest {
         }
     }
 
+    public static Headers.Builder headerBuild = new Headers.Builder();
+
     public static void visitGoBuyUrl() throws Exception {
         Response response = null;
         try {
@@ -108,12 +115,15 @@ public class OkHttpJdGoBuyTest {
             Request request = new Request.Builder()
                     .url(goBuyUrl.getUrl())
                     .get()
+                    .headers(headerBuild.build())
                     .addHeader(HttpHeaders.COOKIE, GOOGLE_COOKIE)
                     .addHeader("Host", "marathon.jd.com")
                     .addHeader("Referer", "https://item.jd.com/" + skuId + ".html")
-                    .addHeader("User-Agent", "")
+                    .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36")
                     .build();
             response = clientBuild.followRedirects(Boolean.FALSE).build().newCall(request).execute();
+            String cookies = response.headers("Set-cookie").stream().collect(Collectors.joining(";"));
+            headerBuild.add("cookie",cookies);
         } catch (Exception e) {
             log.error("进入结算订单页面异常", e);
             throw e;
@@ -130,14 +140,16 @@ public class OkHttpJdGoBuyTest {
         Request request = new Request.Builder()
                 .url(url)
                 .get()
+                .headers(headerBuild.build())
                 .addHeader(HttpHeaders.COOKIE, GOOGLE_COOKIE)
                 .addHeader("Host", "marathon.jd.com")
                 .addHeader("Referer", "https://item.jd.com/" + skuId + ".html")
-                .addHeader("User-Agent", "")
+                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36")
                 .build();
         Response response = null;
         try {
             response = clientBuild.followRedirects(Boolean.FALSE).build().newCall(request).execute();
+            headerBuild.add("cookie",response.headers("Set-Cookie").stream().collect(Collectors.joining( )));
             String string = response.body().string();
             log.info("访问订单结算页面结果为 {},", string);
         } catch (Exception e) {
@@ -160,10 +172,11 @@ public class OkHttpJdGoBuyTest {
         Request request = new Request.Builder()
                 .url(url)
                 .post(builder.build())
+                //.headers(headerBuild.build())
                 .addHeader(HttpHeaders.COOKIE, GOOGLE_COOKIE)
                 .addHeader("Host", "marathon.jd.com")
                 .addHeader("Host", "https://marathon.jd.com/seckill/seckill.action?skuId=" + skuId + "&num=" + 2 + "&rid=" + Instant.now().getEpochSecond())
-                .addHeader("User-Agent", "")
+                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36")
                 .build();
         Response response = null;
         try {
