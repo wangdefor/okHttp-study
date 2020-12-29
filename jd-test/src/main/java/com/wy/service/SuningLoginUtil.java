@@ -56,6 +56,7 @@ public class SuningLoginUtil {
                         .url(checkUrl)
                         .build();
                 try(Response checkResponse = clientBuild.build().newCall(checkRequest).execute()) {
+                    //返回的状态值为2代表登录已扫码
                     System.out.println(checkResponse.body().string());
                     System.out.println(checkResponse.headers("Set-cookie").stream().collect(Collectors.joining(";")));
                 }
